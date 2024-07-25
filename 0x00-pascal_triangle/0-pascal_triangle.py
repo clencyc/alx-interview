@@ -1,6 +1,11 @@
 #!/usr/bin/python3
-
+"""
+This is Pascal's triangle
+"""
 def pascal_triangle(n):
+    """
+    the function returns a list of lists of integers representing the Pascal’s triangle of n:
+    """
 
     if n<= 0:
         return []
