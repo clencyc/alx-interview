@@ -14,47 +14,46 @@ status codes should be printed in ascending order
 """
 
 import sys
-import re
 
 
-def output(log: dict) -> None:
+def print_stats(file_size, status_codes):
     """
-    Output the log data
+    Prints statistics at the beginning and every 10 lines.
+    Also called on Keyboard interruption.
     """
-    print("File size: {:d}".format(log["size"]))
-    for key in sorted(log["status"].keys()):
-        print("{:s}: {:d}".format(key, log["status"][key]))
+    print("File size:", file_size)
+    for code in sorted(status_codes):
+        if status_codes[code] > 0:
+            print(code + ":", status_codes[code])
 
 
 if __name__ == "__main__":
-    regex = re.compile(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3} - \[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+\] "GET /projects/260 HTTP/1.1" (.{3}) (\d+)')  # nopep8
-
-    lc = 0
-    log = {}
-    log["file_size"] = 0
-    log["occurrence"] = {
-        str(code): 0 for code in [
-            200, 301, 400, 401, 403, 404, 405, 500]}
+    line_num = 0
+    file_size = 0
+    status_codes = {"200": 0, "301": 0, "400": 0, "401": 0,
+                    "403": 0, "404": 0, "405": 0, "500": 0}
 
     try:
         for line in sys.stdin:
-            line = line.strip()
-            match = regex.fullmatch(line)
-            if (match):
-                lc += 1
-                code = match.group(1)
-                file_size = int(match.group(2))
+            line_num += 1
+            split_line = line.split()
 
-                # File size
-                log["file_size"] += file_size
+            if len(split_line) > 1:
+                file_size += int(split_line[-1])
 
-                # status code
-                if (code.isdecimal()):
-                    log["occurrence"][code] += 1
+            if len(split_line) > 2 and split_line[-2].isnumeric():
+                status_code = split_line[-2]
+            else:
+                status_code = "0"
 
-                if (lc % 10 == 0):
-                    output(log)
-    except Exception:
-        pass
-    finally:
-        output(log)
+            if status_code in status_codes:
+                status_codes[status_code] += 1
+
+            if line_num % 10 == 0:
+                print_stats(file_size, status_codes)
+
+        print_stats(file_size, status_codes)
+
+    except KeyboardInterrupt:
+        print_stats(file_size, status_codes)
+        raise
